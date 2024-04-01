@@ -28,7 +28,7 @@ final class WordCounts {
     // TODO: Reimplement this method using only the Stream API and lambdas and/or method references.
 
     WordCountComparator wordCountComparator = new WordCountComparator();
-    Integer limitSize = Math.min(wordCounts.entrySet().stream().filter(Objects::nonNull).toList().size(), popularWordCount);
+    int limitSize = Math.min(wordCounts.entrySet().stream().filter(Objects::nonNull).toList().size(), popularWordCount);
     return wordCounts.entrySet().stream()
             .filter(Objects::nonNull)
             .sorted(wordCountComparator)
