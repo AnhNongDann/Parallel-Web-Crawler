@@ -3,11 +3,15 @@ package com.udacity.webcrawler.profiler;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Objects;
 
+import static java.lang.reflect.Proxy.*;
 import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 
 /**
@@ -25,6 +29,13 @@ final class ProfilerImpl implements Profiler {
     this.startTime = ZonedDateTime.now(clock);
   }
 
+  private boolean containsProfilerMethod(Class<?> klass){
+    Method[] methods = klass.getDeclaredMethods();
+    return !Arrays.stream(methods).toList().stream()
+            .filter(m->Objects.nonNull(m.getAnnotation(Profiled.class)))
+            .toList().isEmpty();
+  }
+
   @Override
   public <T> T wrap(Class<T> klass, T delegate) {
     Objects.requireNonNull(klass);
@@ -33,7 +44,23 @@ final class ProfilerImpl implements Profiler {
     //       ProfilingMethodInterceptor and return a dynamic proxy from this method.
     //       See https://docs.oracle.com/javase/10/docs/api/java/lang/reflect/Proxy.html.
 
-    return delegate;
+    if (!containsProfilerMethod(klass)){
+      throw new IllegalArgumentException(
+              "Dont contains profiled method !!"
+      );
+    }
+
+    ProfilingMethodInterceptor profilingMethodInterceptor = new ProfilingMethodInterceptor(
+            this.clock,
+            delegate,
+            this.state
+    );
+
+    return (T) newProxyInstance (
+            ProfilerImpl.class.getClassLoader(),
+            new Class[]{klass},
+            profilingMethodInterceptor
+    );
   }
 
   @Override
